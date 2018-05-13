@@ -4,6 +4,8 @@ import glob
 import random
 from math import exp
 
+from utility import *
+
 n_examples = 1024
 test_ratio = 0.1
 
@@ -47,8 +49,14 @@ class Layer:
     def get_output_all(self):
         return [neuron.output for neuron in self.neurons]
 
+def sigmoid(x):
+    return 1 / (1 + exp(-x))
+
+def sigmoid_derivative(x):
+    return exp(-x) / ((1 + exp(-x)) ** 2)
+
 class ANN:
-    def __init__(self, layers_structure, act_function):
+    def __init__(self, layers_structure, act_function, regularization_type = None, dropout_probabilty):
         self.act_function = act_function
 
         self.layers = []
@@ -56,6 +64,14 @@ class ANN:
         for layer_size in layers_structure:
             self.layers.append(Layer(layer_size, 1, act_function))
             num_input = layer_size
+
+        if regularization_type == "L2":
+            pass
+        elif regularization_type == None:
+            pass
+
+        self.dropout_probability = dropout_probabilty
+
 
     def feed_forward(self, data):
         data.append(1)
@@ -70,7 +86,25 @@ class ANN:
             current_input.append(1)
 
     def get_output(self):
-        return self.layers[-1].get_output_all();
+        return self.layers[-1].get_output_all()
+
+    def calculate_accuracy(self, data):
+        n_correct_answers = 0
+        for datum in data:
+            if (self.answer(datum) == datum.label)
+                n_correct_answers += 1
+
+        return n_correct_answers / len(data)
+
+    def answer(self, example):
+        self.feed_forward(example)
+        return max(self.get_output())[0]
+
+
+    def back_propagate(self):
+
+
+
 
 
 def read_data():
@@ -90,12 +124,11 @@ def read_data():
     return train_data, test_data
 
 
-def sigmoid(x):
-    return 1 / (1 + exp(-x))
+
 
 if __name__ == "__main__":
     train_data, test_data = read_data()
-    ANN([28*28, 150, 10], sigmoid)
+    ANN([28*28, 150, 10], "sigmoid")
 
 
 
