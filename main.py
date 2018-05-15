@@ -5,12 +5,9 @@ import random
 from math import exp
 import datetime
 
+from special_functions import *
 from utility import *
 
-n_examples = 1024
-test_ratio = 0.1
-
-data = [0] * n_examples
 
 class Example:
     # input should be a integer array of length 28*28
@@ -51,18 +48,6 @@ class Neuron:
     def dropout(self):
         self.output = 0
 
-
-def sigmoid(x):
-    return 1 / (1 + exp(-x))
-
-def sigmoid_derivative(x):
-    return exp(-x) / ((1 + exp(-x)) ** 2)
-
-def identity(x):
-    return x
-
-def identity_derivative(x):
-    return 1
 
 class Layer:
     def __init__(self, n_neurons, n_inputs, act_function, is_first_layer):
@@ -126,15 +111,14 @@ class ANN:
 
     def feed_forward(self, data):
         current_input = data
-        # print "at feed_forward, initial data is :", data
 
         for i, layer in enumerate(self.layers):
-            for neuron in layer.neurons:
+            for j, neuron in enumerate(layer.neurons):
                 if np.random.uniform(0, 1) < self.dropout_probability:
                     neuron.dropout()
                 elif i == 0:
-                    # print "calcing first layer neurons : ", current_input[i], [current_input[i]]
-                    neuron.calculate_output([current_input[i]])
+                    print "calcing first layer neuron : ", current_input[j]
+                    neuron.calculate_output([current_input[j]])
                 else:
                     neuron.calculate_output(current_input)
 
@@ -162,6 +146,7 @@ class ANN:
         # for i, layer in enumerate(self.layers[1:]):
         for i in xrange(1, len(self.layers)):
             for neuron in self.layers[i].neurons:
+                print "bias being incremented by ", self.learning_rate * (neuron.delta + self._lambda * neuron.bias)
                 neuron.bias += self.learning_rate * (neuron.delta + self._lambda * neuron.bias)
                 for j, weight in enumerate(neuron.weights):
                     weight += self.learning_rate * (self.layers[i-1].neurons[j].output * neuron.delta + self._lambda + weight)
@@ -201,7 +186,7 @@ class ANN:
 
 
     def train_SGD(self, train_data):
-        print "len train_data", len(train_data)
+        # print "len train_data", len(train_data)
         epochs = 100000
 
         example_index = 0
@@ -221,7 +206,6 @@ class ANN:
             # time1 = datetime.datetime.now()
             # print (datetime.datetime.now() - time1)
 
-
     def train_GD(self, train_data):
         epochs = 1000
 
@@ -234,6 +218,7 @@ class ANN:
             self.update_weights(err_vector)
 
 
+test_ratio = 0.1
 def read_data():
     result = []
     for i, letter in enumerate(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']):
@@ -250,12 +235,21 @@ def read_data():
 
     return train_data, test_data
 
-
-
 if __name__ == "__main__":
     train_data, test_data = read_data()
-    ann = ANN([28*28, 150, 10], "sigmoid")
-    ann.train_SGD(train_data)
+    # ann = ANN([28*28, 150, 10], "sigmoid")
+
+
+    ex1 = Example([1,0,0], 0)
+    ex2 = Example([0,1,0], 1)
+    ex3 = Example([0,0,1], 2)
+    train_data = [ex1, ex2, ex3]
+
+    ann = ANN([3,3],"identity", None, 0)
+
+    ann.feed_forward(ex1.input)
+
+    # ann.train_SGD(train_data)
 
 
 
