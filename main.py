@@ -29,10 +29,10 @@ class Neuron:
             self.bias = 0
         else:
             # ONLY FOR TEST
-            self.weights = [1] * n_inputs
-            self.bias = 0
-            # self.weights = np.random.normal(0, 0.1, n_inputs)
-            # self.bias = np.random.normal(0, 0.1)
+            # self.weights = [1] * n_inputs
+            # self.bias = 0
+            self.weights = np.random.normal(0, 0.1, n_inputs)
+            self.bias = np.random.normal(0, 0.1)
 
         self.bias = 0
         self.intermediate_output = None
@@ -51,6 +51,9 @@ class Neuron:
             result += data[i] * self.weights[i]
         self.intermediate_output = result
         self.output = self.act_func(self.intermediate_output)
+
+    def calculate_output_first_layer(self, data):
+        self.output = self.bias + self.weights[0] * data
 
     def dropout(self):
         self.output = 0
@@ -90,7 +93,8 @@ class Layer:
 class ANN:
     def __init__(self, layers_structure, act_function_str, regularization_type = None, dropout_probabilty = 0):
         self.learning_rate = 0.05
-        self._lambda = 0.03
+        # self._lambda = 0.03
+        self._lambda = 1
 
         self.layers = []
         num_input = 1
@@ -117,7 +121,7 @@ class ANN:
                     neuron.dropout()
                 elif i == 0:
                     # print "calcing first layer neuron : ", current_input[j]
-                    neuron.calculate_output([current_input[j]])
+                    neuron.calculate_output_first_layer(current_input[j])
                 else:
                     neuron.calculate_output(current_input)
 
@@ -135,11 +139,11 @@ class ANN:
             if self.answer(datum) == datum.label:
                 n_correct_answers += 1
 
-        return 100.0 * (n_correct_answers / len(data))
-        # return n_correct_answers
+        return 100.0 * (float(n_correct_answers) / len(data))
 
     def answer(self, example):
         self.feed_forward(example.input)
+        # print "returning: ", max(self.get_output())[0], "for example with label: ", example.label
         return max(self.get_output())[0]
 
     def update_weights(self, err):
@@ -151,11 +155,11 @@ class ANN:
             for k, neuron in enumerate(self.layers[i].neurons):
                 # bias_increment = self.learning_rate * (neuron.delta) #- self._lambda * neuron.bias)
                 # print "bias ", k, " of layer", i, "being incremented by ", bias_increment
-                neuron.bias += self.learning_rate * (neuron.delta) #- self._lambda * neuron.bias)
+                neuron.bias += self.learning_rate * (neuron.delta - self._lambda * neuron.bias)
                 for j, weight in enumerate(neuron.weights):
                     # weight_increment = self.learning_rate * (self.layers[i-1].neurons[j].output * neuron.delta) #- self._lambda * weight)
                     # print "weight ", j, k, "of layer: ", i , "being incremented by: ", weight_increment
-                    weight += self.learning_rate * (self.layers[i-1].neurons[j].output * neuron.delta) #- self._lambda * weight)
+                    weight += self.learning_rate * (self.layers[i-1].neurons[j].output * neuron.delta - self._lambda * weight)
 
     def calculate_deltas(self, err):
         # expected_output = example.get_label_vector()
@@ -177,7 +181,6 @@ class ANN:
 
     def train_SGD(self, train_data):
         # print "len train_data", len(train_data)
-        t = Timer()
         epochs = 10000
 
         example_index = 0
@@ -203,7 +206,8 @@ class ANN:
                 print "epoch no:", i
 
             # print "ex index:", example_index
-            if i % 1000 == 0 and i != 0:
+
+            if i % 200 == 0 and i != 0:
                 print "epoch no", i
                 print "train accuracy : ", self.calculate_accuracy_percent(train_data)
 
@@ -230,14 +234,18 @@ class ANN:
 
 
 test_ratio = 0.1
-def read_data():
+def read_data(max = None):
     result = []
     for i, letter in enumerate(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']):
         for image_path in glob.glob("../data/" + letter + "/*.png"):
             img = misc.imread(image_path).flatten()
+            vector_div(img, 32)
             result.append(Example(img, i))
 
     random.shuffle(result)
+
+    if max != None:
+        result = result[0:max]
 
     break_index = int(len(result) * test_ratio)
 
@@ -247,10 +255,10 @@ def read_data():
     return train_data, test_data
 
 if __name__ == "__main__":
-    train_data, test_data = read_data()
-    ann = ANN([28*28, 150, 10], "sigmoid")
+    train_data, test_data = read_data(500)
+    ann = ANN([28*28, 50, 10], "sigmoid")
+    print "done loading"
     ann.train_SGD(train_data)
-
 
 
     # ex1 = Example([1,0], 0)
@@ -268,12 +276,10 @@ if __name__ == "__main__":
 
 
 
-
     # ann.feed_forward(ex2.input)
     # err_vector = vector_subtract(ex2.get_label_vector(2), ann.get_output())
     # print "error vector: ", err_vector
     # ann.update_weights(err_vector)
-
 
 
 

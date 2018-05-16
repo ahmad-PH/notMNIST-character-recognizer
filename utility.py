@@ -34,3 +34,7 @@ def vector_add(vec1, vec2):
     for i in xrange(len(vec1)):
         result.append(vec1[i] + vec2[i])
     return result
+
+def vector_div(vec, divisor):
+    for i, item in enumerate(vec):
+        vec[i] = vec[i] / divisor
