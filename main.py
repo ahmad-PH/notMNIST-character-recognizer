@@ -131,12 +131,16 @@ class ANN:
         return max(self.get_output())[0]
 
     def update_weights(self, err):
+        t = Timer()
+        # t.record()
         self.calculate_deltas(err)
+        # t.print_elapsed("calc deltas")
 
+        t.record()
         #for non-first layers
         # for i, layer in enumerate(self.layers[1:]):
         for i in xrange(1, len(self.layers)):
-            for k, neuron in enumerate(self.layers[i].neurons):
+            for neuron in self.layers[i].neurons:
                 # bias_increment = self.learning_rate * (neuron.delta) #- self._lambda * neuron.bias)
                 # print "bias ", k, " of layer", i, "being incremented by ", bias_increment
                 neuron.bias += self.learning_rate * (neuron.delta) #- self._lambda * neuron.bias)
@@ -144,6 +148,7 @@ class ANN:
                     # weight_increment = self.learning_rate * (self.layers[i-1].neurons[j].output * neuron.delta) #- self._lambda * weight)
                     # print "weight ", j, k, "of layer: ", i , "being incremented by: ", weight_increment
                     weight += self.learning_rate * (self.layers[i-1].neurons[j].output * neuron.delta) #- self._lambda * weight)
+        t.print_elapsed("rest of update weights")
 
     def calculate_deltas(self, err):
         # expected_output = example.label_vector
@@ -172,20 +177,21 @@ class ANN:
         for i in xrange(epochs):
             current_example = train_data[example_index]
 
-            # t.record()
+            t.record()
             self.feed_forward(current_example.input)
-            # t.print_elapsed()
+            t.print_elapsed("feed forward")
 
             t.record()
             err_vector = vector_subtract(current_example.label_vector, self.get_output())
             t.print_elapsed("vector subtraction")
 
-            # t.record()
+            t.record()
             self.update_weights(err_vector)
-            # print "update weight time: ",
-            # t.print_elapsed()
+            t.print_elapsed("update weights")
 
+            t.record()
             example_index = (example_index + 1) % len(train_data)
+            t.print_elapsed("len")
 
             if i % 50 == 0:
                 print "epoch no", i
