@@ -1,10 +1,9 @@
 from scipy import misc
+from time import sleep
 import numpy as np
 import glob
 import random
-from math import exp
 import datetime
-
 from special_functions import *
 from utility import *
 
@@ -16,6 +15,9 @@ class Example:
         self.input = input
         self.label = label
 
+        self.label_vector = [0] * 10
+        self.label_vector[label] = 1
+
 class Neuron:
     def __init__(self, n_inputs, act_func, is_first_layer):
         self.n_inputs = n_inputs
@@ -25,10 +27,10 @@ class Neuron:
             self.bias = 0
         else:
             # ONLY FOR TEST
-            # self.weights = np.random.normal(0, 0.1, n_inputs)
-            self.weights = [1] * n_inputs
-            # self.bias = np.random.normal(0, 0.1)
-            self.bias = 0
+            # self.weights = [1] * n_inputs
+            # self.bias = 0
+            self.weights = np.random.normal(0, 0.1, n_inputs)
+            self.bias = np.random.normal(0, 0.1)
 
         self.bias = 0
         self.intermediate_output = None
@@ -76,20 +78,6 @@ class Layer:
         return len(self.neurons)
 
 
-def vector_subtract(vec1, vec2):
-    result = []
-    for i in xrange(len(vec1)):
-        result.append(vec1[i] - vec2[i])
-    return result
-
-def vector_add(vec1, vec2):
-    result = []
-    for i in xrange(len(vec1)):
-        result.append(vec1[i] + vec2[i])
-    return result
-
-
-
 class ANN:
     def __init__(self, layers_structure, act_function_str, regularization_type = None, dropout_probabilty = 0):
         self.learning_rate = 0.05
@@ -103,19 +91,17 @@ class ANN:
                                      i == 0))
             num_input = layer_size
 
-
         if regularization_type != "L2" and regularization_type is not None:
             raise RuntimeError("invalid regularization_type: " + regularization_type)
 
         self.regularization_type = regularization_type
         self.dropout_probability = dropout_probabilty
 
-
     def feed_forward(self, data):
         current_input = data
 
         for i, layer in enumerate(self.layers):
-            print "layer number: ", i
+            # print "layer number: ", i
             for j, neuron in enumerate(layer.neurons):
                 if np.random.uniform(0, 1) < self.dropout_probability:
                     neuron.dropout()
@@ -125,7 +111,7 @@ class ANN:
                 else:
                     neuron.calculate_output(current_input)
 
-                print "neuron output is", neuron.output
+                # print "neuron output is", neuron.output
 
             current_input = layer.get_output_all()
 
@@ -151,20 +137,20 @@ class ANN:
         # for i, layer in enumerate(self.layers[1:]):
         for i in xrange(1, len(self.layers)):
             for k, neuron in enumerate(self.layers[i].neurons):
-                bias_increment = self.learning_rate * (neuron.delta - self._lambda * neuron.bias)
-                print "bias ", k, " of layer", i, "being incremented by ", bias_increment
-                neuron.bias += bias_increment
+                # bias_increment = self.learning_rate * (neuron.delta) #- self._lambda * neuron.bias)
+                # print "bias ", k, " of layer", i, "being incremented by ", bias_increment
+                neuron.bias += self.learning_rate * (neuron.delta) #- self._lambda * neuron.bias)
                 for j, weight in enumerate(neuron.weights):
-                    weight_increment = self.learning_rate * (self.layers[i-1].neurons[j].output * neuron.delta - self._lambda * weight)
-                    print "weight ", j, k, "of layer: ", i , "being incremented by: ", weight_increment
-                    weight += weight_increment
+                    # weight_increment = self.learning_rate * (self.layers[i-1].neurons[j].output * neuron.delta) #- self._lambda * weight)
+                    # print "weight ", j, k, "of layer: ", i , "being incremented by: ", weight_increment
+                    weight += self.learning_rate * (self.layers[i-1].neurons[j].output * neuron.delta) #- self._lambda * weight)
 
     def calculate_deltas(self, err):
-        # expected_output = self.label_to_expected_output(example.label)
+        # expected_output = example.label_vector
 
         # calculate delta for last layer
         for i, neuron in enumerate(self.layers[-1].neurons):
-            print "calculating delta for last layer, neuron", i, " : ", err[i] * self.layers[-1].act_function_derivative(neuron.intermediate_output)
+            # print "calculating delta for last layer, neuron", i, " : ", err[i] * self.layers[-1].act_function_derivative(neuron.intermediate_output)
             # err = expected_output[i] - neuron.output
             neuron.delta = err[i] * self.layers[-1].act_function_derivative(neuron.intermediate_output)
 
@@ -177,35 +163,32 @@ class ANN:
                 neuron.delta = self.layers[i].act_function_derivative(neuron.intermediate_output) * sigma
 
 
-    def calculate_regularization_value(self):
-        if regularization_type == "L2":
-            regularization_value = 0
-            for layer in self.layers:
-                for neuron in layer.neurons:
-                    for weight in neuron.weights:
-                        self.regularization_value += weight ** 2
-        else:
-            regularization_value = 0
-        return regularization_value
-
-    def label_to_expected_output(self, label):
-        result = [0] * self.layers[-1].len()
-        result[label] = 1
-        return result
-
-
     def train_SGD(self, train_data):
         # print "len train_data", len(train_data)
-        epochs = 100000
+        t = Timer()
+        epochs = 10000
 
         example_index = 0
         for i in xrange(epochs):
             current_example = train_data[example_index]
+
+            # t.record()
             self.feed_forward(current_example.input)
-            err_vector = vector_subtract(self.label_to_expected_output(current_example.label), self.get_output())
+            # t.print_elapsed()
+
+            t.record()
+            err_vector = vector_subtract(current_example.label_vector, self.get_output())
+            t.print_elapsed("vector subtraction")
+
+            # t.record()
             self.update_weights(err_vector)
+            # print "update weight time: ",
+            # t.print_elapsed()
 
             example_index = (example_index + 1) % len(train_data)
+
+            if i % 50 == 0:
+                print "epoch no", i
 
             # print "ex index:", example_index
             if (i % 1000 == 0 and i != 0):
@@ -222,7 +205,7 @@ class ANN:
             err_vector = [0] * len(self.layers[-1])
             for example in train_data:
                 self.feed_forward(example.input)
-                partial_err_vector = vector_subtract(self.label_to_expected_output(example.label), self.get_output())
+                partial_err_vector = vector_subtract(example.label_vector, self.get_output())
                 vector_add(err_vector, partial_err_vector)
             self.update_weights(err_vector)
 
@@ -246,24 +229,27 @@ def read_data():
 
 if __name__ == "__main__":
     train_data, test_data = read_data()
-    # ann = ANN([28*28, 150, 10], "sigmoid")
-    # ann.train_SGD(train_data)
+    ann = ANN([28*28, 150, 10], "sigmoid")
+    print "started training"
+    ann.train_SGD(train_data)
 
-    ex1 = Example([1,0], 0)
-    ex2 = Example([0,1], 1)
-    train_data = [ex1, ex2, ex3]
 
-    ann = ANN([2,2,2],"identity", None, 0)
 
-    ann.feed_forward(ex1.input)
-    err_vector = vector_subtract(ann.label_to_expected_output(ex1.label), ann.get_output())
-    print "error vector: ", err_vector
-    ann.update_weights(err_vector)
-
-    ann.feed_forward(ex2.input)
-    err_vector = vector_subtract(ann.label_to_expected_output(ex2.label), ann.get_output())
-    print "error vector: ", err_vector
-    ann.update_weights(err_vector)
+    # ex1 = Example([1,0], 0)
+    # ex2 = Example([0,1], 1)
+    # train_data = [ex1, ex2, ex3]
+    #
+    # ann = ANN([2,2,2],"identity", None, 0)
+    #
+    # ann.feed_forward(ex1.input)
+    # err_vector = vector_subtract(ex1.label_vector, ann.get_output())
+    # print "error vector: ", err_vector
+    # ann.update_weights(err_vector)
+    #
+    # ann.feed_forward(ex2.input)
+    # err_vector = vector_subtract(ex2.label_vector, ann.get_output())
+    # print "error vector: ", err_vector
+    # ann.update_weights(err_vector)
 
 
 
