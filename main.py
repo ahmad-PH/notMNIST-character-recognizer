@@ -94,9 +94,9 @@ class ANN:
 
         self.layers = []
         num_input = 1
-        for i, layer_size in enumerate(layers_structure[1:]):
+        for i, layer_size in enumerate(layers_structure):
             self.layers.append(Layer(layer_size, num_input,
-                                     "identity" if i == len(layers_structure) - 1 else act_function_str,
+                                     "identity" if i == len(layers_structure) - 1 or i == 0 else act_function_str,
                                      i == 0))
             num_input = layer_size
 
@@ -199,8 +199,11 @@ class ANN:
 
             example_index = (example_index + 1) % len(train_data)
 
+            if i % 50 == 0:
+                print "epoch no:", i
+
             # print "ex index:", example_index
-            if (i % 1000 == 0 and i != 0):
+            if i % 1000 == 0 and i != 0:
                 print "epoch no", i
                 print "train accuracy : ", self.calculate_accuracy_percent(train_data)
 
@@ -217,6 +220,13 @@ class ANN:
                 partial_err_vector = vector_subtract(example.get_label_vector(), self.get_output())
                 vector_add(err_vector, partial_err_vector)
             self.update_weights(err_vector)
+
+
+    def __repr__(self):
+        result = "layers : \n"
+        for layer in self.layers:
+            result += "\t" + str(layer) + "\n"
+        return result
 
 
 test_ratio = 0.1
@@ -243,7 +253,6 @@ if __name__ == "__main__":
 
 
 
-    #
     # ex1 = Example([1,0], 0)
     # ex2 = Example([0,1], 1)
     # train_data = [ex1, ex2]
@@ -280,3 +289,7 @@ if __name__ == "__main__":
 
 # twiddles:
 # enable regularization term again
+
+
+#TODO:
+# consider shor-circuiting first layer in case performance stinks
