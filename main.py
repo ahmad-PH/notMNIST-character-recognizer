@@ -24,8 +24,11 @@ class Neuron:
             self.weights = [1] * n_inputs
             self.bias = 0
         else:
-            self.weights = np.random.normal(0, 0.1, n_inputs)
-            self.bias = np.random.normal(0, 0.1)
+            # ONLY FOR TEST
+            # self.weights = np.random.normal(0, 0.1, n_inputs)
+            self.weights = [1] * n_inputs
+            # self.bias = np.random.normal(0, 0.1)
+            self.bias = 0
 
         self.bias = 0
         self.intermediate_output = None
@@ -58,7 +61,7 @@ class Layer:
             self.act_function = identity
             self.act_function_derivative = identity_derivative
         else:
-            raise RuntimeError("invalid act_function type")
+            raise RuntimeError("invalid act_function type: " + act_function)
 
         self.n_neurons = n_neurons
 
@@ -88,19 +91,18 @@ def vector_add(vec1, vec2):
 
 
 class ANN:
-    def __init__(self, layers_structure, act_function, regularization_type = None, dropout_probabilty = 0):
+    def __init__(self, layers_structure, act_function_str, regularization_type = None, dropout_probabilty = 0):
         self.learning_rate = 0.05
         self._lambda = 0.03
 
         self.layers = []
         num_input = 1
-        is_first_layer = True
-        for layer_size in layers_structure[1:-1]:
-            self.layers.append(Layer(layer_size, num_input, act_function, is_first_layer))
+        for i, layer_size in enumerate(layers_structure):
+            self.layers.append(Layer(layer_size, num_input,
+                                     "identity" if i == len(layers_structure) - 1 else act_function_str,
+                                     i == 0))
             num_input = layer_size
-            is_first_layer = False
 
-        self.layers.append(Layer(layers_structure[-1], num_input, "identity", False))
 
         if regularization_type != "L2" and regularization_type is not None:
             raise RuntimeError("invalid regularization_type: " + regularization_type)
@@ -113,14 +115,17 @@ class ANN:
         current_input = data
 
         for i, layer in enumerate(self.layers):
+            print "layer number: ", i
             for j, neuron in enumerate(layer.neurons):
                 if np.random.uniform(0, 1) < self.dropout_probability:
                     neuron.dropout()
                 elif i == 0:
-                    print "calcing first layer neuron : ", current_input[j]
+                    # print "calcing first layer neuron : ", current_input[j]
                     neuron.calculate_output([current_input[j]])
                 else:
                     neuron.calculate_output(current_input)
+
+                print "neuron output is", neuron.output
 
             current_input = layer.get_output_all()
 
@@ -145,19 +150,23 @@ class ANN:
         #for non-first layers
         # for i, layer in enumerate(self.layers[1:]):
         for i in xrange(1, len(self.layers)):
-            for neuron in self.layers[i].neurons:
-                print "bias being incremented by ", self.learning_rate * (neuron.delta + self._lambda * neuron.bias)
-                neuron.bias += self.learning_rate * (neuron.delta + self._lambda * neuron.bias)
+            for k, neuron in enumerate(self.layers[i].neurons):
+                bias_increment = self.learning_rate * (neuron.delta - self._lambda * neuron.bias)
+                print "bias ", k, " of layer", i, "being incremented by ", bias_increment
+                neuron.bias += bias_increment
                 for j, weight in enumerate(neuron.weights):
-                    weight += self.learning_rate * (self.layers[i-1].neurons[j].output * neuron.delta + self._lambda + weight)
+                    weight_increment = self.learning_rate * (self.layers[i-1].neurons[j].output * neuron.delta - self._lambda * weight)
+                    print "weight ", j, k, "of layer: ", i , "being incremented by: ", weight_increment
+                    weight += weight_increment
 
     def calculate_deltas(self, err):
         # expected_output = self.label_to_expected_output(example.label)
 
         # calculate delta for last layer
         for i, neuron in enumerate(self.layers[-1].neurons):
+            print "calculating delta for last layer, neuron", i, " : ", err[i] * self.layers[-1].act_function_derivative(neuron.intermediate_output)
             # err = expected_output[i] - neuron.output
-            neuron.delta = (-1) * err[i] * self.layers[-1].act_function_derivative(neuron.intermediate_output)
+            neuron.delta = err[i] * self.layers[-1].act_function_derivative(neuron.intermediate_output)
 
         # calculate delta for other layers
         for i in xrange(len(self.layers) - 2, 0, -1):
@@ -238,18 +247,25 @@ def read_data():
 if __name__ == "__main__":
     train_data, test_data = read_data()
     # ann = ANN([28*28, 150, 10], "sigmoid")
+    # ann.train_SGD(train_data)
 
-
-    ex1 = Example([1,0,0], 0)
-    ex2 = Example([0,1,0], 1)
-    ex3 = Example([0,0,1], 2)
+    ex1 = Example([1,0], 0)
+    ex2 = Example([0,1], 1)
     train_data = [ex1, ex2, ex3]
 
-    ann = ANN([3,3],"identity", None, 0)
+    ann = ANN([2,2,2],"identity", None, 0)
 
     ann.feed_forward(ex1.input)
+    err_vector = vector_subtract(ann.label_to_expected_output(ex1.label), ann.get_output())
+    print "error vector: ", err_vector
+    ann.update_weights(err_vector)
 
-    # ann.train_SGD(train_data)
+    ann.feed_forward(ex2.input)
+    err_vector = vector_subtract(ann.label_to_expected_output(ex2.label), ann.get_output())
+    print "error vector: ", err_vector
+    ann.update_weights(err_vector)
+
+
 
 
 
@@ -258,4 +274,5 @@ if __name__ == "__main__":
 
 
 
-
+# twiddles:
+# enable regularization term again
