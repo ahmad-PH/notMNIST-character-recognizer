@@ -21,6 +21,9 @@ class Timer:
         print message, (datetime.datetime.now() - self.time)
 
 def vector_subtract(vec1, vec2):
+    if len(vec1) != len(vec2):
+        raise RuntimeError("unequal vector length at vector_subtract: " + str(len(vec1)) + ", " + str(len(vec2)))
+
     result = []
     for i in xrange(len(vec1)):
         result.append(vec1[i] - vec2[i])

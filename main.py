@@ -15,8 +15,10 @@ class Example:
         self.input = input
         self.label = label
 
-        self.label_vector = [0] * 10
-        self.label_vector[label] = 1
+    def get_label_vector(self, len = 10):
+        result = [0] * len
+        result[self.label] = 1
+        return result
 
 class Neuron:
     def __init__(self, n_inputs, act_func, is_first_layer):
@@ -27,10 +29,10 @@ class Neuron:
             self.bias = 0
         else:
             # ONLY FOR TEST
-            # self.weights = [1] * n_inputs
-            # self.bias = 0
-            self.weights = np.random.normal(0, 0.1, n_inputs)
-            self.bias = np.random.normal(0, 0.1)
+            self.weights = [1] * n_inputs
+            self.bias = 0
+            # self.weights = np.random.normal(0, 0.1, n_inputs)
+            # self.bias = np.random.normal(0, 0.1)
 
         self.bias = 0
         self.intermediate_output = None
@@ -55,17 +57,20 @@ class Neuron:
 
 
 class Layer:
-    def __init__(self, n_neurons, n_inputs, act_function, is_first_layer):
-        if act_function == "sigmoid":
+    def __init__(self, n_neurons, n_inputs, act_function_str, is_first_layer):
+        if act_function_str == "sigmoid":
             self.act_function = sigmoid
             self.act_function_derivative = sigmoid_derivative
-        elif act_function == "identity":
+        elif act_function_str == "identity":
             self.act_function = identity
             self.act_function_derivative = identity_derivative
         else:
-            raise RuntimeError("invalid act_function type: " + act_function)
+            raise RuntimeError("invalid act_function type: " + act_function_str)
 
+        self.act_function_str = act_function_str
         self.n_neurons = n_neurons
+        self.n_inputs = n_inputs
+        self.is_first_layer = is_first_layer
 
         self.neurons = []
         for i in range(n_neurons):
@@ -77,6 +82,10 @@ class Layer:
     def len(self):
         return len(self.neurons)
 
+    def __repr__(self):
+        return "len: " + str(self.len()) + ", n_inputs: " + str(self.n_inputs) + \
+               ", activation_func: " + str(self.act_function_str) + ", is_first_layer: " +  str(self.is_first_layer)
+
 
 class ANN:
     def __init__(self, layers_structure, act_function_str, regularization_type = None, dropout_probabilty = 0):
@@ -85,7 +94,7 @@ class ANN:
 
         self.layers = []
         num_input = 1
-        for i, layer_size in enumerate(layers_structure):
+        for i, layer_size in enumerate(layers_structure[1:]):
             self.layers.append(Layer(layer_size, num_input,
                                      "identity" if i == len(layers_structure) - 1 else act_function_str,
                                      i == 0))
@@ -100,8 +109,9 @@ class ANN:
     def feed_forward(self, data):
         current_input = data
 
+        # print "ff layers:", self.layers
         for i, layer in enumerate(self.layers):
-            # print "layer number: ", i
+            # print "computing layer, ", i,
             for j, neuron in enumerate(layer.neurons):
                 if np.random.uniform(0, 1) < self.dropout_probability:
                     neuron.dropout()
@@ -114,6 +124,7 @@ class ANN:
                 # print "neuron output is", neuron.output
 
             current_input = layer.get_output_all()
+            # print "output is: ", layer.get_output_all()
 
     def get_output(self):
         return self.layers[-1].get_output_all()
@@ -124,7 +135,8 @@ class ANN:
             if self.answer(datum) == datum.label:
                 n_correct_answers += 1
 
-        return 100 * (n_correct_answers / len(data))
+        return 100.0 * (n_correct_answers / len(data))
+        # return n_correct_answers
 
     def answer(self, example):
         self.feed_forward(example.input)
@@ -146,7 +158,7 @@ class ANN:
                     weight += self.learning_rate * (self.layers[i-1].neurons[j].output * neuron.delta) #- self._lambda * weight)
 
     def calculate_deltas(self, err):
-        # expected_output = example.label_vector
+        # expected_output = example.get_label_vector()
 
         # calculate delta for last layer
         for i, neuron in enumerate(self.layers[-1].neurons):
@@ -176,9 +188,9 @@ class ANN:
             self.feed_forward(current_example.input)
             # t.print_elapsed()
 
-            t.record()
-            err_vector = vector_subtract(current_example.label_vector, self.get_output())
-            t.print_elapsed("vector subtraction")
+            # t.record()
+            err_vector = vector_subtract(current_example.get_label_vector(), self.get_output())
+            # t.print_elapsed("vector subtraction")
 
             # t.record()
             self.update_weights(err_vector)
@@ -186,9 +198,6 @@ class ANN:
             # t.print_elapsed()
 
             example_index = (example_index + 1) % len(train_data)
-
-            if i % 50 == 0:
-                print "epoch no", i
 
             # print "ex index:", example_index
             if (i % 1000 == 0 and i != 0):
@@ -205,7 +214,7 @@ class ANN:
             err_vector = [0] * len(self.layers[-1])
             for example in train_data:
                 self.feed_forward(example.input)
-                partial_err_vector = vector_subtract(example.label_vector, self.get_output())
+                partial_err_vector = vector_subtract(example.get_label_vector(), self.get_output())
                 vector_add(err_vector, partial_err_vector)
             self.update_weights(err_vector)
 
@@ -230,24 +239,29 @@ def read_data():
 if __name__ == "__main__":
     train_data, test_data = read_data()
     ann = ANN([28*28, 150, 10], "sigmoid")
-    print "started training"
     ann.train_SGD(train_data)
 
 
 
+    #
     # ex1 = Example([1,0], 0)
     # ex2 = Example([0,1], 1)
-    # train_data = [ex1, ex2, ex3]
+    # train_data = [ex1, ex2]
     #
-    # ann = ANN([2,2,2],"identity", None, 0)
+    # ann = ANN([2, 2, 2], "identity", None, 0)
     #
     # ann.feed_forward(ex1.input)
-    # err_vector = vector_subtract(ex1.label_vector, ann.get_output())
+    # err_vector = vector_subtract(ex1.get_label_vector(2), ann.get_output())
+    # print "ann out:", ann.get_output()
+    # print "label vec:", ex1.get_label_vector(2)
     # print "error vector: ", err_vector
     # ann.update_weights(err_vector)
-    #
+
+
+
+
     # ann.feed_forward(ex2.input)
-    # err_vector = vector_subtract(ex2.label_vector, ann.get_output())
+    # err_vector = vector_subtract(ex2.get_label_vector(2), ann.get_output())
     # print "error vector: ", err_vector
     # ann.update_weights(err_vector)
 
@@ -258,6 +272,10 @@ if __name__ == "__main__":
 
 #TODO: draw loss function
 
+#TODO (debug):
+# double layer
+# test with sigmoid (?)
+# multi example
 
 
 # twiddles:
