@@ -236,16 +236,27 @@ class ANN:
 test_ratio = 0.1
 def read_data(max = None):
     result = []
-    for i, letter in enumerate(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']):
+    letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']
+
+
+    max_images_per_letter = float("+inf")
+    if max != None:
+        max_images_per_letter = max / len(letters)
+
+    for i, letter in enumerate(letters):
+
+        num_images_read_for_letter = 0
         for image_path in glob.glob("../data/" + letter + "/*.png"):
+
             img = misc.imread(image_path).flatten()
             vector_div(img, 32)
             result.append(Example(img, i))
 
-    random.shuffle(result)
+            num_images_read_for_letter += 1
+            if num_images_read_for_letter >= max_images_per_letter:
+                break
 
-    if max != None:
-        result = result[0:max]
+    random.shuffle(result)
 
     break_index = int(len(result) * test_ratio)
 
@@ -255,10 +266,11 @@ def read_data(max = None):
     return train_data, test_data
 
 if __name__ == "__main__":
-    train_data, test_data = read_data(500)
-    ann = ANN([28*28, 50, 10], "sigmoid")
-    print "done loading"
-    ann.train_SGD(train_data)
+    train_data, test_data = read_data(4000)
+    print "len is :", len(train_data), len(test_data)
+    # ann = ANN([28*28, 50, 10], "sigmoid")
+    # print "done loading"
+    # ann.train_SGD(train_data)
 
 
     # ex1 = Example([1,0], 0)
