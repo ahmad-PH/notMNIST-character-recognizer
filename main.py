@@ -9,6 +9,8 @@ if __name__ == "__main__":
     ann.train_SGD(train_data, test_data)
 
 
+
+
     # ex1 = Example([1,0], 0, 2)
     # ex2 = Example([0,1], 1, 2)
     # train_data = [ex1, ex2]
@@ -43,7 +45,7 @@ if __name__ == "__main__":
 
 
 # twiddles:
-# enable regularization term again
+# enable regularization term again (and set lambda back to 0.05)
 # restore learning rate back to 0.05
 
 

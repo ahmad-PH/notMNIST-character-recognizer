@@ -48,10 +48,7 @@ class ANN:
                 else:
                     neuron.calculate_output(current_input)
 
-                # print "neuron output is", neuron.output
-
             current_input = layer.get_output_all()
-            # print "output is: ", layer.get_output_all()
 
     def get_output(self):
         return self.layers[-1].get_output_all()
@@ -66,7 +63,6 @@ class ANN:
 
     def answer(self, example):
         self.feed_forward(example.input)
-        # print "returning: ", max(self.get_output())[0], "for example with label: ", example.label
         return max(self.get_output())[0]
 
     def update_weights(self, err):
@@ -88,8 +84,6 @@ class ANN:
 
         # calculate delta for last layer
         for i, neuron in enumerate(self.layers[-1].neurons):
-            # print "calculating delta for last layer, neuron", i, " : ", err[i] * self.layers[-1].act_function_derivative(neuron.intermediate_output)
-            # err = expected_output[i] - neuron.output
             neuron.delta = err[i] * self.layers[-1].act_function_derivative(neuron.intermediate_output)
 
         # calculate delta for other layers
@@ -103,53 +97,67 @@ class ANN:
 
     def train_SGD(self, train_data, test_data):
         # print "len train_data", len(train_data)
-        epochs = 10000
+        try:
+            epochs = 10000
 
-        example_index = 0
-        for i in xrange(epochs):
-            current_example = train_data[example_index]
+            example_index = 0
+            for i in xrange(epochs):
+                current_example = train_data[example_index]
 
-            # t.record()
-            self.feed_forward(current_example.input)
-            # t.print_elapsed()
+                self.feed_forward(current_example.input)
+                err_vector = vector_subtract(current_example.label_vector, self.get_output())
+                self.update_weights(err_vector)
 
-            # t.record()
-            err_vector = vector_subtract(current_example.label_vector, self.get_output())
-            # t.print_elapsed("vector subtraction")
+                example_index = (example_index + 1) % len(train_data)
 
-            # t.record()
-            self.update_weights(err_vector)
-            # print "update weight time: ",
-            # t.print_elapsed()
+                if i % 100 == 0:
+                    print "epoch no:", i
 
-            example_index = (example_index + 1) % len(train_data)
+                if i % 200 == 0 and i != 0:
+                    print "epoch no", i
+                    print "train accuracy : ", self.calculate_accuracy_percent(train_data)
+                    print "test accuracy : ", self.calculate_accuracy_percent(test_data)
+                    print "continuing in 1 sec. press ctrl+c to stop."
+                    sleep(1)
 
-            if i % 50 == 0:
-                print "epoch no:", i
-                # print self
+        except KeyboardInterrupt:
+            print ""
+        finally:
+            self.save_if_user_confirms()
 
-            # print "ex index:", example_index
-
-            if i % 200 == 0 and i != 0:
-                print "epoch no", i
-                print "train accuracy : ", self.calculate_accuracy_percent(train_data)
-                print "test accuracy : ", self.calculate_accuracy_percent(test_data)
-                self.store("test.txt")
-                break
-
-            # time1 = datetime.datetime.now()
-            # print (datetime.datetime.now() - time1)
 
     def train_GD(self, train_data):
-        epochs = 1000
+        try:
+            epochs = 1000
 
-        for i in xrange(epochs):
-            err_vector = [0] * len(self.layers[-1])
-            for example in train_data:
-                self.feed_forward(example.input)
-                partial_err_vector = vector_subtract(example.label_vector, self.get_output())
-                vector_add(err_vector, partial_err_vector)
-            self.update_weights(err_vector)
+            for i in xrange(epochs):
+                err_vector = [0] * len(self.layers[-1])
+                for example in train_data:
+                    self.feed_forward(example.input)
+                    partial_err_vector = vector_subtract(example.label_vector, self.get_output())
+                    vector_add(err_vector, partial_err_vector)
+                self.update_weights(err_vector)
+
+                if i % 10 == 0 and i != 0:
+                    print "epoch no", i
+                    print "train accuracy : ", self.calculate_accuracy_percent(train_data)
+                    print "test accuracy : ", self.calculate_accuracy_percent(test_data)
+                    print "continuing in 1 sec. press ctrl+c to stop."
+                    sleep(1)
+
+        except KeyboardInterrupt:
+            print ""
+        finally:
+            self.save_if_user_confirms()
+
+    def save_if_user_confirms(self):
+        user_input = ask_for_user_input("would you like to save the network? (y/n)", ["y", "n"])
+        if user_input == "y":
+            file_name = ask_for_user_input("enter file name:")
+            self.store(file_name)
+            print "saved successfully."
+        else:
+            print "quitting without saving the network."
 
 
     def __repr__(self):
@@ -182,23 +190,22 @@ class ANN:
                 file.write(str(neuron.bias) + "\n")
                 file.write(str(neuron.weights) + "\n")
 
-
     @staticmethod
     def load(filename):
         lines = open(filename, "r").read().splitlines()
         layers_structure = ast.literal_eval(lines[0])
         regularization_type = lines[2] if lines[2] != "None" else None
-        ann = ANN(layers_structure, lines[1], regularization_type, int(lines[3]))
+        result = ANN(layers_structure, lines[1], regularization_type, int(lines[3]))
 
         line_index = 5
         for layer_index in range(len(layers_structure)):
             if layer_index == 0:
                 continue
             for neuron_indx in range(layers_structure[layer_index]):
-                ann.layers[layer_index].neurons[neuron_indx].bias = float(lines[line_index])
+                result.layers[layer_index].neurons[neuron_indx].bias = float(lines[line_index])
                 # print "reading literal : ", lines[line_index + 1]
-                ann.layers[layer_index].neurons[neuron_indx].weights = ast.literal_eval(lines[line_index + 1])
-                # print "result : ", ann.layers[layer_index].neurons[neuron_indx].weights
+                result.layers[layer_index].neurons[neuron_indx].weights = ast.literal_eval(lines[line_index + 1])
+                # print "result : ", result.layers[layer_index].neurons[neuron_indx].weights
                 line_index += 2
-        print "end of load print:"
-        print ann
+
+        return result

@@ -47,3 +47,11 @@ def display_image(img):
             print img[pixel_index],
             pixel_index += 1
         print ""
+
+def ask_for_user_input(message, valid_options = None):
+    while True:
+        user_input = raw_input(message + " ")
+        if valid_options is not None and user_input not in valid_options:
+            print "please type ", "/".join(valid_options)
+        else:
+            return user_input
