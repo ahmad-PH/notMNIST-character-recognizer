@@ -10,7 +10,6 @@ def read_data(max = None):
     result = []
     letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']
 
-
     max_images_per_letter = float("+inf")
     if max != None:
         max_images_per_letter = max / len(letters)
