@@ -21,6 +21,9 @@ class Timer:
         print message, (datetime.datetime.now() - self.time)
 
 def vector_subtract(vec1, vec2):
+    if len(vec1) != len(vec2):
+        raise RuntimeError("unequal vector length at vector_subtract: " + str(len(vec1)) + ", " + str(len(vec2)))
+
     result = []
     for i in xrange(len(vec1)):
         result.append(vec1[i] - vec2[i])
@@ -31,3 +34,16 @@ def vector_add(vec1, vec2):
     for i in xrange(len(vec1)):
         result.append(vec1[i] + vec2[i])
     return result
+
+def vector_div(vec, divisor):
+    for i, item in enumerate(vec):
+        vec[i] = vec[i] / divisor
+
+
+def display_image(img):
+    pixel_index = 0
+    for i in xrange(28):
+        for j in xrange(28):
+            print img[pixel_index],
+            pixel_index += 1
+        print ""
