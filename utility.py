@@ -38,3 +38,12 @@ def vector_add(vec1, vec2):
 def vector_div(vec, divisor):
     for i, item in enumerate(vec):
         vec[i] = vec[i] / divisor
+
+
+def display_image(img):
+    pixel_index = 0
+    for i in xrange(28):
+        for j in xrange(28):
+            print img[pixel_index],
+            pixel_index += 1
+        print ""
