@@ -1,6 +1,7 @@
 from math import *
 
 def sigmoid(x):
+    # print "sigmoid: ", x
     return 1 / (1 + exp(-x))
 
 def sigmoid_derivative(x):
