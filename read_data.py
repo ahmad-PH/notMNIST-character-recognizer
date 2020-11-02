@@ -20,7 +20,7 @@ def read_data(max = None):
         for image_path in glob.glob("../data/" + letter + "/*.png"):
 
             img = misc.imread(name=image_path).flatten().tolist()
-            vector_div(img, 128)
+            vector_div_inplace(img, 128)
             result.append(Example(img, i, 10))
 
             num_images_read_for_letter += 1

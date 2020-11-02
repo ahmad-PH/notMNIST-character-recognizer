@@ -19,6 +19,8 @@ class Neuron:
         self.output = None
         self.act_func = act_func
         self.delta = 0 #for backpropagation
+        self.accumulated_bias_update = 0
+        self.accumulated_weight_update = [0] * len(self.weights)
 
     def calculate_output(self, data):
         #temporary, remove after debugging for better performance
@@ -36,4 +38,10 @@ class Neuron:
         self.output = self.bias + self.weights[0] * data
 
     def dropout(self):
+        self.intermediate_output = 0
         self.output = 0
+
+    def reset_accumulated_update(self):
+        self.accumulated_bias_update = 0
+        for i in xrange(len(self.weights)):
+            self.accumulated_weight_update[i] = 0

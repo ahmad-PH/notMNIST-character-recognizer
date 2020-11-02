@@ -35,10 +35,16 @@ def vector_add(vec1, vec2):
         result.append(vec1[i] + vec2[i])
     return result
 
-def vector_div(vec, divisor):
+def vector_div_inplace(vec, divisor):
     for i, item in enumerate(vec):
         vec[i] = vec[i] / divisor
 
+
+def vector_power_two(vec):
+    result = 0
+    for item in vec:
+        result += item ** 2
+    return result
 
 def display_image(img):
     pixel_index = 0
